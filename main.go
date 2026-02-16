@@ -14,7 +14,7 @@ import (
 const (
 	W = 800
 	H = 800
-	SUN_SIZE = 64
+	CELESTIAL_SIZE = 64
 )
 
 var (
@@ -298,7 +298,7 @@ func (g *Game) DrawSun(screen *ebiten.Image) {
 
 	sp := v1.Project().ToScreen(screen)
 
-	vector.FillRect(screen, float32(sp.X), float32(sp.Y), SUN_SIZE, SUN_SIZE, SunColor, false)
+	vector.FillRect(screen, float32(sp.X), float32(sp.Y), CELESTIAL_SIZE, CELESTIAL_SIZE, SunColor, false)
 }
 
 func (g *Game) DrawMoon(screen *ebiten.Image) {
@@ -318,7 +318,7 @@ func (g *Game) DrawMoon(screen *ebiten.Image) {
 
 	sp := v1.Project().ToScreen(screen)
 
-	vector.FillRect(screen, float32(sp.X), float32(sp.Y), SUN_SIZE, SUN_SIZE, MoonColor, false)
+	vector.FillRect(screen, float32(sp.X), float32(sp.Y), CELESTIAL_SIZE, CELESTIAL_SIZE, MoonColor, false)
 }
 
 func (g *Game) Update() error {
