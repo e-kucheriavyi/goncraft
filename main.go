@@ -164,6 +164,8 @@ func (b *Block) Draw(screen *ebiten.Image, g *Game) {
 
 		hasLessThanZero := false
 
+		var ysd float64 = 0
+
 		for i, j := range r {
 			v1 := vs[j]
 			v1 = v1.Translate(bv)
@@ -171,6 +173,8 @@ func (b *Block) Draw(screen *ebiten.Image, g *Game) {
 			sd.X += v1.X
 			sd.Y += v1.Y
 			sd.Z += v1.Z
+
+			ysd += v1.Y
 
 			v1 = v1.Translate(g.PlayerPosition).Rotate(g.PlayerRotation)
 
@@ -218,11 +222,15 @@ func (b *Block) Draw(screen *ebiten.Image, g *Game) {
 			continue
 		}
 
-		//sd.X = sd.X / 4
-		//sd.Y = sd.Y / 4
-		//sd.Z = sd.Z / 4
+		sd.X = sd.X / 4
+		sd.Y = sd.Y / 4
+		sd.Z = sd.Z / 4
 
-		cv := uint8((sd.X + sd.Y + sd.Z) / 3 * 255)
+		ysd /= 4
+
+		//cv := uint8((sd.X + sd.Y + sd.Z) / 3 * 255)
+
+		cv := uint8(ysd*255)
 
 		col := color.RGBA{cv, cv, cv, 255}
 
