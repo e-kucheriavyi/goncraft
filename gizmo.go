@@ -11,7 +11,7 @@ const (
 )
 
 var (
-	red = color.RGBA{255, 0, 0, 255}
+	red  = color.RGBA{255, 0, 0, 255}
 	blue = color.RGBA{0, 0, 255, 255}
 )
 
@@ -37,4 +37,3 @@ func (g *Game) DrawWorldAxis(screen *ebiten.Image) {
 	z2p := Vector3ToGameScreen(z2, g, screen)
 	StrokeLine(screen, z1p, z2p, GIZMO_W, blue)
 }
-

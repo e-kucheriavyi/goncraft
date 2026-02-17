@@ -59,7 +59,6 @@ func (v *Vector2) ToScreen(screen *ebiten.Image) *Vector2 {
 	}
 }
 
-
 type Vector3 struct {
 	X float64
 	Y float64
@@ -126,4 +125,3 @@ func (v *Vector3) Div(b *Vector3) *Vector3 {
 func Vector3ToGameScreen(v *Vector3, g *Game, screen *ebiten.Image) *Vector2 {
 	return v.Add(g.PlayerPosition).Rotate(g.PlayerRotation).Project().ToScreen(screen)
 }
-

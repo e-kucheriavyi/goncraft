@@ -4,4 +4,3 @@
 - Cap for camera
 - sun and moon -> `celestials.go`
 - controls -> `controls.go`
-

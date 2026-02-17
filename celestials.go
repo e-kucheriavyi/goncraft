@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	SunColor = color.RGBA{255, 200, 0, 255}
+	SunColor  = color.RGBA{255, 200, 0, 255}
 	MoonColor = color.RGBA{0xDD, 0xE8, 0xEA, 0xFF}
 )
 

@@ -127,7 +127,6 @@ func (b *Block) Draw(screen *ebiten.Image, g *Game) {
 				break
 			}
 
-
 			if i == 0 {
 				pth.MoveTo(float32(p1.X), float32(p1.Y))
 			} else {
@@ -171,7 +170,7 @@ func (b *Block) Draw(screen *ebiten.Image, g *Game) {
 
 		//cv := uint8((sd.X + sd.Y + sd.Z) / 3 * 255)
 
-		cv := uint8(ysd*255)
+		cv := uint8(ysd * 255)
 
 		col := color.RGBA{cv, cv, cv, 255}
 
@@ -200,7 +199,6 @@ func NewGame() *Game {
 		Cursor:         &Vector2{0, 0},
 	}
 }
-
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.DrawMoon(screen)
@@ -232,7 +230,6 @@ func (g *Game) Update() error {
 
 	return nil
 }
-
 
 func (g *Game) Layout(w, h int) (int, int) {
 	g.W = float64(w)
