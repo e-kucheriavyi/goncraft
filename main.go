@@ -31,28 +31,26 @@ const (
 
 type Block struct {
 	Type BlockType
-	X    int
-	Y    int
-	Z    int
+	Pos  *Vector3
 }
 
 var blocks = []*Block{
-	{Grass, 0, 0, 0},
-	{Grass, 0, 0, 1},
-	{Grass, 0, 0, 2},
-	{Grass, 0, 0, 3},
-	{Grass, 1, 0, 0},
-	{Grass, 2, 0, 0},
-	{Grass, 3, 0, 0},
-	{Grass, 0, 0, -1},
-	{Grass, 0, 0, -2},
-	{Grass, 0, 0, -3},
-	{Grass, -1, 0, 0},
-	{Grass, -2, 0, 0},
-	{Grass, -3, 0, 0},
-	{Dirt, -3, 1, 0},
-	{Dirt, -3, 2, 0},
-	{Dirt, -3, 3, 0},
+	{Grass, &Vector3{0, 0, 0}},
+	{Grass, &Vector3{0, 0, 1}},
+	{Grass, &Vector3{0, 0, 2}},
+	{Grass, &Vector3{0, 0, 3}},
+	{Grass, &Vector3{1, 0, 0}},
+	{Grass, &Vector3{2, 0, 0}},
+	{Grass, &Vector3{3, 0, 0}},
+	{Grass, &Vector3{0, 0, -1}},
+	{Grass, &Vector3{0, 0, -2}},
+	{Grass, &Vector3{0, 0, -3}},
+	{Grass, &Vector3{-1, 0, 0}},
+	{Grass, &Vector3{-2, 0, 0}},
+	{Grass, &Vector3{-3, 0, 0}},
+	{Dirt, &Vector3{-3, 1, 0}},
+	{Dirt, &Vector3{-3, 2, 0}},
+	{Dirt, &Vector3{-3, 3, 0}},
 }
 
 var vs = []*Vector3{
@@ -77,29 +75,26 @@ var fs = [][]int{
 }
 
 var centers = []*Vector3{
-	{0.5, -0.5, 0.0}, // 0
-	{1.0, -0.5, 0.5}, // 1
-	{0.5, -1.0, 0.5}, // 2
-	{0.0, -0.5, 0.5}, // 3
-	{0.5, 0.0, 0.5},  // 4
-	{0.5, -0.5, 1.0}, // 5
+	{0.5, -0.5, 0.0}, // 0 side
+	{1.0, -0.5, 0.5}, // 1 side
+	{0.5, -1.0, 0.5}, // 2 bottom
+	{0.0, -0.5, 0.5}, // 3 side
+	{0.5, 0.0, 0.5},  // 4 top
+	{0.5, -0.5, 1.0}, // 5 side
 }
 
 func (b *Block) Draw(screen *ebiten.Image, g *Game) {
-	bv := &Vector3{
-		float64(b.X),
-		float64(b.Y),
-		float64(b.Z),
-	}
+	bv := b.Pos.Clone()
 
 	// 1: compute all faces
 	// 2: sort
 	// 3: draw (last 3)
 
 	type Face struct {
-		Vs []*Vector3
-		D  float64
-		N  *Vector3
+		Vs    []*Vector3
+		D     float64
+		N     *Vector3
+		Shade float64
 	}
 
 	faces := make([]Face, 0, 12)
@@ -111,17 +106,17 @@ func (b *Block) Draw(screen *ebiten.Image, g *Game) {
 
 		faceVs := make([]*Vector3, 0, 16)
 		for _, j := range r {
-			v := vs[j]
+			v := vs[j].Clone()
 			v1 := v.Add(bv)
 			v1 = v1.Sub(g.PlayerPosition).Rotate(g.PlayerRotation)
-
-			p := v1.Project().ToScreen(screen)
-			ebitenutil.DebugPrintAt(screen, fmt.Sprintf("%d", j), int(p.X), int(p.Y))
 
 			if v1.Z < 0 {
 				skip = true
 				break
 			}
+
+			p := v1.Project().ToScreen(screen)
+			ebitenutil.DebugPrintAt(screen, fmt.Sprintf("%d", j), int(p.X), int(p.Y))
 
 			faceVs = append(faceVs, v1)
 		}
@@ -129,17 +124,25 @@ func (b *Block) Draw(screen *ebiten.Image, g *Game) {
 			continue
 		}
 
-		n := centers[i].Add(bv)
+		n := centers[i].Clone().Add(bv)
 
 		d := math.Abs(n.Sub(g.PlayerPosition).Rotate(g.PlayerRotation).GetSqrDistance(g.PlayerPosition))
 
 		maxD = math.Max(d, maxD)
 
-		n = n.Sub(g.PlayerPosition).Rotate(g.PlayerRotation)
+		shade := 0.8
+
+		if i == 4 {
+			shade = 1.0
+		} else if i == 6 {
+			shade = 0.6
+		}
+
 		faces = append(faces, Face{
-			Vs: faceVs,
-			D:  d,
-			N:  n,
+			Vs:    faceVs,
+			D:     d,
+			N:     n,
+			Shade: shade,
 		})
 	}
 
@@ -147,13 +150,20 @@ func (b *Block) Draw(screen *ebiten.Image, g *Game) {
 		return faces[i].D > faces[j].D
 	})
 
-	for _, fs := range faces {
+	for i, fs := range faces {
 		// if i >= 3 {
 		// 	break
 		// }
 		pth := &vector.Path{}
 
+		skip := false
+
 		for j, v := range fs.Vs {
+			if v.Z < 0 {
+				skip = true
+				break
+			}
+
 			p := v.Project().ToScreen(screen)
 
 			if j == 0 {
@@ -163,42 +173,30 @@ func (b *Block) Draw(screen *ebiten.Image, g *Game) {
 			}
 		}
 
-		pth.Close()
-
-		cv := uint8(0)
-
-		if b.Type == Grass {
-			cv = 150
-		} else if b.Type == Dirt {
-			cv = 100
+		if skip {
+			continue
 		}
 
-		// col := color.RGBA{cv, cv, cv, 255}
+		pth.Close()
 
-		//nc := uint8((float32(i)/float32(10))*255)
-		nc := uint8((fs.D / maxD) * float64(cv))
+		cv := 0.0
+
+		if b.Type == Grass {
+			cv = 150.0
+		} else if b.Type == Dirt {
+			cv = 100.0
+		}
+
+		shade := fs.D / maxD
+		shade = faces[i].Shade
+		nc := uint8(shade * cv)
 		cc := color.RGBA{nc, nc, nc, 255}
 
 		c := ebiten.ColorScale{}
 		c.ScaleWithColor(cc)
 		fillOpts := &vector.FillOptions{}
-		strokeOpts := &vector.StrokeOptions{Width: 2}
 		pathOpts := &vector.DrawPathOptions{ColorScale: c}
-		if 1 == 1 {
-			vector.FillPath(screen, pth, fillOpts, pathOpts)
-		}
-
-		c.ScaleWithColor(green)
-		pathOpts = &vector.DrawPathOptions{ColorScale: c}
-		vector.StrokePath(screen, pth, strokeOpts, pathOpts)
-
-		pn := fs.N.Project().ToScreen(screen)
-
-		s := float32(8)
-
-		cc = color.RGBA{nc, nc, 255, 255}
-
-		vector.FillRect(screen, float32(pn.X)-s, float32(pn.Y)-s, s, s, cc, false)
+		vector.FillPath(screen, pth, fillOpts, pathOpts)
 	}
 }
 
@@ -228,19 +226,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		a := blocks[i]
 		b := blocks[j]
 
-		av := &Vector3{
-			float64(a.X),
-			float64(a.Y),
-			float64(a.Z),
-		}
+		av := a.Pos.Clone()
+		bv := b.Pos.Clone()
 
-		bv := &Vector3{
-			float64(b.X),
-			float64(b.Y),
-			float64(b.Z),
-		}
-
-		return av.GetSqrDistance(g.PlayerPosition) < bv.GetSqrDistance(g.PlayerPosition)
+		return av.GetSqrDistance(g.PlayerPosition) > bv.GetSqrDistance(g.PlayerPosition)
 	})
 
 	for _, b := range blocks {

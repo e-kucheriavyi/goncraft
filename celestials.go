@@ -17,7 +17,7 @@ var (
 )
 
 func (g *Game) DrawSun(screen *ebiten.Image) {
-	v1 := g.SunPosition.Sub(g.PlayerPosition)
+	v1 := g.SunPosition.Clone().Sub(g.PlayerPosition)
 
 	v1 = v1.Rotate(g.PlayerRotation)
 
@@ -31,11 +31,7 @@ func (g *Game) DrawSun(screen *ebiten.Image) {
 }
 
 func (g *Game) DrawMoon(screen *ebiten.Image) {
-	v1 := &Vector3{
-		g.SunPosition.X,
-		g.SunPosition.Y * -1,
-		g.SunPosition.Z,
-	}
+	v1 := g.SunPosition.Clone().Mul(&Vector3{0, -1, 0})
 
 	v1 = v1.Sub(g.PlayerPosition)
 
