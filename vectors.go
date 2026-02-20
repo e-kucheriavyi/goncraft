@@ -55,7 +55,7 @@ func (v *Vector2) ToScreen(screen *ebiten.Image) *Vector2 {
 
 	return &Vector2{
 		X: ((v.X + 1) / 2) * w,
-		Y: (1 - ((v.Y + 1) / 2)) * h,
+		Y: ((v.Y + 1) / 2) * h,
 	}
 }
 
@@ -120,6 +120,22 @@ func (v *Vector3) Div(b *Vector3) *Vector3 {
 		Y: v.Y / b.Y,
 		Z: v.Z / b.Z,
 	}
+}
+
+func (v *Vector3) GetDistance(b *Vector3) float64 {
+	x := b.X + v.X
+	y := b.Y + v.Y
+	z := b.Z + v.Z
+
+	return math.Sqrt(x*x + y*y + z*z)
+}
+
+func (v *Vector3) GetSqrDistance(b *Vector3) float64 {
+	x := b.X + v.X
+	y := b.Y + v.Y
+	z := b.Z + v.Z
+
+	return x*x + y*y + z*z
 }
 
 func Vector3ToGameScreen(v *Vector3, g *Game, screen *ebiten.Image) *Vector2 {

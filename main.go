@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
+	"sort"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -48,137 +50,155 @@ var blocks = []*Block{
 	{Grass, -1, 0, 0},
 	{Grass, -2, 0, 0},
 	{Grass, -3, 0, 0},
-	{Grass, -3, 1, 0},
-	{Grass, -3, 2, 0},
-	{Grass, -3, 3, 0},
+	{Dirt, -3, 1, 0},
+	{Dirt, -3, 2, 0},
+	{Dirt, -3, 3, 0},
 }
 
 var vs = []*Vector3{
-	{0.5, 0.5, 0.5},
-	{-0.5, 0.5, 0.5},
-	{-0.5, -0.5, 0.5},
-	{0.5, -0.5, 0.5},
+	{0, 0, 0},
+	{1, 0, 0},
+	{1, -1, 0},
+	{0, -1, 0},
 
-	{0.5, 0.5, -0.5},
-	{-0.5, 0.5, -0.5},
-	{-0.5, -0.5, -0.5},
-	{0.5, -0.5, -0.5},
+	{0, 0, 1},
+	{1, 0, 1},
+	{1, -1, 1},
+	{0, -1, 1},
 }
 
 var fs = [][]int{
 	{0, 1, 2, 3},
-	{4, 5, 6, 7},
-	{0, 4, 7, 3},
 	{1, 2, 6, 5},
-	{0, 1, 5, 4},
 	{2, 3, 7, 6},
+	{3, 0, 4, 7},
+	{4, 0, 1, 5},
+	{6, 7, 4, 5},
+}
+
+var centers = []*Vector3{
+	{0.5, -0.5, 0.0}, // 0
+	{1.0, -0.5, 0.5}, // 1
+	{0.5, -1.0, 0.5}, // 2
+	{0.0, -0.5, 0.5}, // 3
+	{0.5, 0.0, 0.5},  // 4
+	{0.5, -0.5, 1.0}, // 5
 }
 
 func (b *Block) Draw(screen *ebiten.Image, g *Game) {
-	// S := 1.0
-
 	bv := &Vector3{
 		float64(b.X),
 		float64(b.Y),
 		float64(b.Z),
 	}
 
-	// for i, v := range vs {
-	//	p := v.Add(bv).Add(g.PlayerPosition).Rotate(g.PlayerRotation).Project()
-	//	p = p.ToScreen(screen)
-	//	vector.FillRect(
-	//		screen,
-	//		float32(p.X-S*0.5),
-	//		float32(p.Y-S*0.5),
-	//		float32(S),
-	//		float32(S),
-	//		brown,
-	//		false,
-	//	)
-	//	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("%d", i), int(p.X), int(p.Y))
-	//}
+	// 1: compute all faces
+	// 2: sort
+	// 3: draw (last 3)
 
-	for _, r := range fs {
-		pth := &vector.Path{}
+	type Face struct {
+		Vs []*Vector3
+		D  float64
+		N  *Vector3
+	}
 
-		sd := &Vector3{}
+	faces := make([]Face, 0, 12)
 
-		hasLessThanZero := false
+	maxD := float64(0.0)
 
-		var ysd float64 = 0
+	for i, r := range fs {
+		skip := false
 
-		for i, j := range r {
-			v1 := vs[j]
-			v1 = v1.Add(bv)
+		faceVs := make([]*Vector3, 0, 16)
+		for _, j := range r {
+			v := vs[j]
+			v1 := v.Add(bv)
+			v1 = v1.Sub(g.PlayerPosition).Rotate(g.PlayerRotation)
 
-			sd.X += v1.X
-			sd.Y += v1.Y
-			sd.Z += v1.Z
-
-			ysd += v1.Y
-
-			v1 = v1.Add(g.PlayerPosition).Rotate(g.PlayerRotation)
-
-			p1 := v1.Project()
-			p1 = p1.ToScreen(screen)
+			p := v1.Project().ToScreen(screen)
+			ebitenutil.DebugPrintAt(screen, fmt.Sprintf("%d", j), int(p.X), int(p.Y))
 
 			if v1.Z < 0 {
-				hasLessThanZero = true
+				skip = true
 				break
 			}
 
-			if i == 0 {
-				pth.MoveTo(float32(p1.X), float32(p1.Y))
-			} else {
-				pth.LineTo(float32(p1.X), float32(p1.Y))
-			}
-
-			var v2 *Vector3
-
-			if i == len(r)-1 {
-				v2 = vs[r[0]]
-			} else {
-				v2 = vs[r[i+1]]
-			}
-
-			v2 = v2.Add(bv).Add(g.PlayerPosition).Rotate(g.PlayerRotation)
-
-			if v2.Z < 0 {
-				hasLessThanZero = true
-				break
-			}
-
-			p2 := v2.Project()
-			p2 = p2.ToScreen(screen)
-
-			vector.StrokeLine(
-				screen,
-				float32(p1.X), float32(p1.Y), float32(p2.X), float32(p2.Y),
-				1.0, green, false,
-			)
+			faceVs = append(faceVs, v1)
 		}
-
-		if hasLessThanZero {
+		if skip {
 			continue
 		}
 
-		sd.X = sd.X / 4
-		sd.Y = sd.Y / 4
-		sd.Z = sd.Z / 4
+		n := centers[i].Add(bv)
 
-		ysd /= 4
+		d := math.Abs(n.Sub(g.PlayerPosition).Rotate(g.PlayerRotation).GetSqrDistance(g.PlayerPosition))
 
-		//cv := uint8((sd.X + sd.Y + sd.Z) / 3 * 255)
+		maxD = math.Max(d, maxD)
 
-		cv := uint8(ysd * 255)
+		n = n.Sub(g.PlayerPosition).Rotate(g.PlayerRotation)
+		faces = append(faces, Face{
+			Vs: faceVs,
+			D:  d,
+			N:  n,
+		})
+	}
 
-		col := color.RGBA{cv, cv, cv, 255}
+	sort.Slice(faces, func(i, j int) bool {
+		return faces[i].D > faces[j].D
+	})
+
+	for _, fs := range faces {
+		// if i >= 3 {
+		// 	break
+		// }
+		pth := &vector.Path{}
+
+		for j, v := range fs.Vs {
+			p := v.Project().ToScreen(screen)
+
+			if j == 0 {
+				pth.MoveTo(float32(p.X), float32(p.Y))
+			} else {
+				pth.LineTo(float32(p.X), float32(p.Y))
+			}
+		}
+
+		pth.Close()
+
+		cv := uint8(0)
+
+		if b.Type == Grass {
+			cv = 150
+		} else if b.Type == Dirt {
+			cv = 100
+		}
+
+		// col := color.RGBA{cv, cv, cv, 255}
+
+		//nc := uint8((float32(i)/float32(10))*255)
+		nc := uint8((fs.D / maxD) * float64(cv))
+		cc := color.RGBA{nc, nc, nc, 255}
 
 		c := ebiten.ColorScale{}
-		c.ScaleWithColor(col)
+		c.ScaleWithColor(cc)
 		fillOpts := &vector.FillOptions{}
+		strokeOpts := &vector.StrokeOptions{Width: 2}
 		pathOpts := &vector.DrawPathOptions{ColorScale: c}
-		vector.FillPath(screen, pth, fillOpts, pathOpts)
+		if 1 == 1 {
+			vector.FillPath(screen, pth, fillOpts, pathOpts)
+		}
+
+		c.ScaleWithColor(green)
+		pathOpts = &vector.DrawPathOptions{ColorScale: c}
+		vector.StrokePath(screen, pth, strokeOpts, pathOpts)
+
+		pn := fs.N.Project().ToScreen(screen)
+
+		s := float32(8)
+
+		cc = color.RGBA{nc, nc, 255, 255}
+
+		vector.FillRect(screen, float32(pn.X)-s, float32(pn.Y)-s, s, s, cc, false)
 	}
 }
 
@@ -194,7 +214,7 @@ type Game struct {
 func NewGame() *Game {
 	return &Game{
 		SunPosition:    &Vector3{0, 10, 0},
-		PlayerPosition: &Vector3{1, 1, 1},
+		PlayerPosition: &Vector3{5, 5, 5},
 		PlayerRotation: &Vector2{0, 0},
 		Cursor:         &Vector2{0, 0},
 	}
@@ -204,11 +224,30 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.DrawMoon(screen)
 	g.DrawSun(screen)
 
+	sort.Slice(blocks, func(i, j int) bool {
+		a := blocks[i]
+		b := blocks[j]
+
+		av := &Vector3{
+			float64(a.X),
+			float64(a.Y),
+			float64(a.Z),
+		}
+
+		bv := &Vector3{
+			float64(b.X),
+			float64(b.Y),
+			float64(b.Z),
+		}
+
+		return av.GetSqrDistance(g.PlayerPosition) < bv.GetSqrDistance(g.PlayerPosition)
+	})
+
 	for _, b := range blocks {
 		b.Draw(screen, g)
 	}
 
-	g.DrawWorldAxis(screen)
+	// g.DrawWorldAxis(screen)
 
 	ebitenutil.DebugPrint(
 		screen,
@@ -221,6 +260,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			g.PlayerRotation.Y,
 		),
 	)
+
+	vector.StrokeRect(screen, 0, 0, W, H, 2, green, false)
 }
 
 func (g *Game) Update() error {

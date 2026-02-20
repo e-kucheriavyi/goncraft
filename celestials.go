@@ -17,11 +17,11 @@ var (
 )
 
 func (g *Game) DrawSun(screen *ebiten.Image) {
-	v1 := g.SunPosition.Add(g.PlayerPosition)
+	v1 := g.SunPosition.Sub(g.PlayerPosition)
 
 	v1 = v1.Rotate(g.PlayerRotation)
 
-	if v1.Z > 0 {
+	if v1.Z < 0 {
 		return
 	}
 
@@ -37,11 +37,11 @@ func (g *Game) DrawMoon(screen *ebiten.Image) {
 		g.SunPosition.Z,
 	}
 
-	v1 = v1.Add(g.PlayerPosition)
+	v1 = v1.Sub(g.PlayerPosition)
 
 	v1 = v1.Rotate(g.PlayerRotation)
 
-	if v1.Z > 0 {
+	if v1.Z < 0 {
 		return
 	}
 

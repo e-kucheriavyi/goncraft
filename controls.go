@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	MAX_CAM_TILT = -math.Pi * 0.5
-	MIN_CAM_TILT = -math.Pi * 1.5
+	MAX_CAM_TILT = math.Pi * 0.5
+	MIN_CAM_TILT = math.Pi * 1.5
 )
 
 func (g *Game) HandleMouseMove() {
@@ -19,11 +19,11 @@ func (g *Game) HandleMouseMove() {
 	dt := float64(1) / float64(60)
 
 	g.PlayerRotation.X += (((g.Cursor.X - x) * dt) * math.Pi)
-	g.PlayerRotation.Y += (((g.Cursor.Y - y) * dt) * math.Pi)
+	g.PlayerRotation.Y -= (((g.Cursor.Y - y) * dt) * math.Pi)
 
-	if g.PlayerRotation.Y > MAX_CAM_TILT {
+	if g.PlayerRotation.Y < MAX_CAM_TILT {
 		g.PlayerRotation.Y = MAX_CAM_TILT
-	} else if g.PlayerRotation.Y < MIN_CAM_TILT {
+	} else if g.PlayerRotation.Y > MIN_CAM_TILT {
 		g.PlayerRotation.Y = MIN_CAM_TILT
 	}
 
@@ -54,9 +54,12 @@ func (g *Game) HandleMovement() {
 }
 
 func (g *Game) HandleJump() {
+	dt := float64(1) / float64(60)
 	if ebiten.IsKeyPressed(ebiten.KeySpace) {
-		dt := float64(1) / float64(60)
 		g.PlayerPosition.Y += 1 * dt
+		return
+	} else if ebiten.IsKeyPressed(ebiten.KeyShift) {
+		g.PlayerPosition.Y -= 1 * dt
 		return
 	}
 }
